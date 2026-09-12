@@ -4,7 +4,8 @@ export PYTHONPATH := $(CURDIR)
 
 .PHONY: help setup test fakeworker-list fakeworker-soak fakeworker-429 fakeworker-overflow \
         sync ssh lambda-setup lambda-cluster lambda-status smoke \
-        app logs clean
+        port-forward app test-traffic test-traffic-5 test-traffic-10 test-traffic-fast test-traffic-nodeport \
+        logs clean superlinked-usage superlinked-keys
 
 help:
 	@echo "Class 9: Gateway + Router + vLLM Cluster"
@@ -32,7 +33,11 @@ help:
 	@echo "═══════════════════════════════════════════════════════════════════"
 	@echo "SEND TRAFFIC (Steps 16-25):"
 	@echo "═══════════════════════════════════════════════════════════════════"
+	@echo "  make port-forward       Step 16:   Start SSH tunnels (KEEP RUNNING)"
 	@echo "  make app                Step 20:   Run app.py interactive REPL"
+	@echo "  make test-traffic-5     Step 21:   Send 5 concurrent requests"
+	@echo "  make test-traffic-10    Step 21:   Send 10 concurrent requests (overflow)"
+	@echo "  make test-traffic-fast  Step 21:   Send 3 fast requests (15 tokens)"
 	@echo ""
 	@echo "═══════════════════════════════════════════════════════════════════"
 	@echo "UTILITIES:"
@@ -104,6 +109,13 @@ smoke:
 # SEND TRAFFIC (Steps 16-25)
 # ═══════════════════════════════════════════════════════════════════════════
 
+port-forward:
+	@echo "Step 16: Starting SSH port forwarding tunnels..."
+	@echo ""
+	@echo "⚠️  IMPORTANT: Keep this terminal open while testing!"
+	@echo ""
+	bash setup/port_forward.sh
+
 app:
 	@if [ -f .env ]; then \
 		set -a && . .env && set +a && $(PYTHON) app.py; \
@@ -114,9 +126,66 @@ app:
 		exit 1; \
 	fi
 
+test-traffic:
+	@echo "Sending 5 concurrent test requests to gateway..."
+	@if [ -f .env ]; then \
+		set -a && . .env && set +a && TEST_NUM_REQUESTS=5 $(PYTHON) tests/test_traffic.py; \
+	else \
+		echo "Error: .env file not found."; \
+		exit 1; \
+	fi
+
+test-traffic-5:
+	@echo "Sending 5 concurrent test requests to gateway..."
+	@if [ -f .env ]; then \
+		set -a && . .env && set +a && TEST_NUM_REQUESTS=5 $(PYTHON) tests/test_traffic.py; \
+	else \
+		echo "Error: .env file not found."; \
+		exit 1; \
+	fi
+
+test-traffic-10:
+	@echo "Sending 10 concurrent test requests (should trigger overflow)..."
+	@if [ -f .env ]; then \
+		set -a && . .env && set +a && TEST_NUM_REQUESTS=10 $(PYTHON) tests/test_traffic.py; \
+	else \
+		echo "Error: .env file not found."; \
+		exit 1; \
+	fi
+
+test-traffic-fast:
+	@echo "Sending 3 fast test requests (short tokens, 10s timeout)..."
+	@if [ -f .env ]; then \
+		set -a && . .env && set +a && TEST_NUM_REQUESTS=3 TEST_MAX_TOKENS=15 TEST_TIMEOUT=10 $(PYTHON) tests/test_traffic.py; \
+	else \
+		echo "Error: .env file not found."; \
+		exit 1; \
+	fi
+
+test-traffic-nodeport:
+	@echo "Testing direct access to NodePort (30800)..."
+	@for i in 1 2 3; do \
+		echo "[$$i] Sending request..."; \
+		curl -s -X POST http://129.213.22.135:30800/v1/completions \
+			-H "Content-Type: application/json" \
+			-d '{"prompt":"Test.","max_tokens":10}' | jq -c '.usage // "error"'; \
+	done
+
 # ═══════════════════════════════════════════════════════════════════════════
 # UTILITIES
 # ═══════════════════════════════════════════════════════════════════════════
+
+superlinked-usage:
+	@echo "Opening Superlinked Usage & Billing console..."
+	@echo "Check: Credit balance, Spend (30d), Units metered"
+	@echo ""
+	open "https://console.superlinked.com/console/usage"
+
+superlinked-keys:
+	@echo "Opening Superlinked API Keys console..."
+	@echo "View active keys and their usage"
+	@echo ""
+	open "https://console.superlinked.com/console/keys"
 
 clean:
 	@echo "Cleaning up..."
