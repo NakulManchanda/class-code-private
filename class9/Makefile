@@ -2,33 +2,127 @@ VENV := .venv
 PYTHON ?= $(if $(wildcard $(VENV)/bin/python),$(VENV)/bin/python,python3)
 export PYTHONPATH := $(CURDIR)
 
-.PHONY: setup sync ssh cluster smoke test app fakeworker
+.PHONY: help setup test fakeworker-list fakeworker-soak fakeworker-429 fakeworker-overflow \
+        sync ssh lambda-setup lambda-cluster lambda-status smoke \
+        app logs clean
+
+help:
+	@echo "Class 9: Gateway + Router + vLLM Cluster"
+	@echo ""
+	@echo "═══════════════════════════════════════════════════════════════════"
+	@echo "LAPTOP SETUP (Steps 1-9):"
+	@echo "═══════════════════════════════════════════════════════════════════"
+	@echo "  make setup              Step 1-4:  Create venv and install deps"
+	@echo "  make test               Step 5:    Run pytest tests"
+	@echo "  make fakeworker-list    Step 6:    List fakeworker behaviors"
+	@echo "  make fakeworker-soak    Step 7:    Test fleet-soak behavior"
+	@echo "  make fakeworker-429     Step 8:    Test tenant-429-stays behavior"
+	@echo "  make fakeworker-overflow Step 9:   Test overflow-on-503 behavior"
+	@echo ""
+	@echo "═══════════════════════════════════════════════════════════════════"
+	@echo "LAMBDA CLUSTER (Steps 10-15):"
+	@echo "═══════════════════════════════════════════════════════════════════"
+	@echo "  make sync               Step 10:   Sync code to Lambda instance"
+	@echo "  make ssh                Step 11:   SSH into Lambda instance"
+	@echo "  make lambda-setup       Step 12:   Run lambda_setup.sh"
+	@echo "  make lambda-cluster     Step 13:   Run lambda_cluster.sh"
+	@echo "  make lambda-status      Step 14:   Check cluster status"
+	@echo "  make smoke              Step 15:   Run smoke_sliced.sh"
+	@echo ""
+	@echo "═══════════════════════════════════════════════════════════════════"
+	@echo "SEND TRAFFIC (Steps 16-25):"
+	@echo "═══════════════════════════════════════════════════════════════════"
+	@echo "  make app                Step 20:   Run app.py interactive REPL"
+	@echo ""
+	@echo "═══════════════════════════════════════════════════════════════════"
+	@echo "UTILITIES:"
+	@echo "═══════════════════════════════════════════════════════════════════"
+	@echo "  make clean              Remove .venv and __pycache__"
+	@echo ""
+
+# ═══════════════════════════════════════════════════════════════════════════
+# LAPTOP SETUP (Steps 1-9)
+# ═══════════════════════════════════════════════════════════════════════════
 
 setup:
+	@echo "Steps 1-4: Creating venv and installing dependencies..."
 	$(PYTHON) -m venv $(VENV)
 	$(VENV)/bin/pip install -U pip
 	$(VENV)/bin/pip install -r requirements.txt
-	@echo
-	@echo "Mac:     make sync && make ssh"
-	@echo "Lambda:  bash setup/lambda_setup.sh && bash setup/lambda_cluster.sh && make smoke"
+	@echo ""
+	@echo "✓ Setup complete! Next: make test"
+
+test:
+	@echo "Step 5: Running pytest tests..."
+	$(PYTHON) -m pytest tests/ -v
+
+fakeworker-list:
+	@echo "Step 6: Listing fakeworker behaviors..."
+	$(PYTHON) -m fakeworker.run --list
+
+fakeworker-soak:
+	@echo "Step 7: Running fleet-soak behavior..."
+	$(PYTHON) -m fakeworker.run --behavior fleet-soak
+
+fakeworker-429:
+	@echo "Step 8: Running tenant-429-stays behavior..."
+	$(PYTHON) -m fakeworker.run --behavior tenant-429-stays
+
+fakeworker-overflow:
+	@echo "Step 9: Running overflow-on-503 behavior..."
+	$(PYTHON) -m fakeworker.run --behavior overflow-on-503
+
+# ═══════════════════════════════════════════════════════════════════════════
+# LAMBDA CLUSTER (Steps 10-15)
+# ═══════════════════════════════════════════════════════════════════════════
 
 sync:
+	@echo "Step 10: Syncing code to Lambda..."
 	bash setup/sync_to_lambda.sh
 
 ssh:
+	@echo "Step 11: Connecting to Lambda..."
 	bash setup/ssh.sh
 
-cluster:
-	bash setup/lambda_cluster.sh
+lambda-setup:
+	@echo "Step 12: You are now on Lambda. Run this:"
+	@echo "  bash setup/lambda_setup.sh"
+
+lambda-cluster:
+	@echo "Step 13: Run this on Lambda:"
+	@echo "  bash setup/lambda_cluster.sh"
+
+lambda-status:
+	@echo "Step 14: Check cluster status on Lambda:"
+	@echo "  kubectl get deploy,svc,scaledobject"
 
 smoke:
+	@echo "Step 15: Run smoke tests on Lambda:"
 	bash setup/smoke_sliced.sh
 
-test:
-	$(PYTHON) -m pytest tests/
+# ═══════════════════════════════════════════════════════════════════════════
+# SEND TRAFFIC (Steps 16-25)
+# ═══════════════════════════════════════════════════════════════════════════
 
 app:
-	$(PYTHON) app.py
+	@if [ -f .env ]; then \
+		set -a && . .env && set +a && $(PYTHON) app.py; \
+	else \
+		echo "Error: .env file not found."; \
+		echo "First: cp .env.example .env"; \
+		echo "Then edit .env with your Lambda IP and credentials"; \
+		exit 1; \
+	fi
 
-fakeworker:
-	$(PYTHON) -m fakeworker.run --list
+# ═══════════════════════════════════════════════════════════════════════════
+# UTILITIES
+# ═══════════════════════════════════════════════════════════════════════════
+
+clean:
+	@echo "Cleaning up..."
+	rm -rf $(VENV)
+	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+	find . -type f -name "*.pyc" -delete
+	@echo "✓ Cleaned"
+
+.DEFAULT_GOAL := help
