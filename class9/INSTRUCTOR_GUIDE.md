@@ -213,6 +213,210 @@ This is graceful degradation: something is better than nothing.
 
 ---
 
+## Act 11: The Models - Text, Vision, and Everything
+
+Your cluster needs to know which models are available and how to use them. Here's what we're running:
+
+### Model Configuration
+
+- **Text Model:** Qwen 3.5 - Fast, lightweight text generation
+- **Vision Model:** Qwen's Vision Language Model - Same model family, but trained to understand images
+- **Local Model:** Qwen 3.5 (used for local testing and fallback)
+
+### Why This Matters
+
+You're not just running "a model"—you're running multiple models optimized for different tasks:
+- Text queries → Qwen 3.5 (fast)
+- Vision queries → Qwen VLM (understand images)
+- Overflow queries → Maybe a smaller/cheaper model on Superlinked
+
+**In code:** Look for `TEXT_MODEL`, `VISION_MODEL` in your environment variables and `.env` file.
+
+---
+
+## Act 12: HAMI - The Disaggregation Expert
+
+Here's a concept that'll blow your mind: **what if you separated prefill from decode?**
+
+### What HAMI Does
+
+HAMI stands for (conceptually) "the thing that makes disaggregated inference work."
+
+Its job:
+1. **Slicing:** Split a request into prefill phase (process all input tokens) and decode phase (generate output tokens one-by-one)
+2. **KV Sharing:** After prefill finishes on pod-1, make sure decode on pod-2 can read the KV cache from pod-1
+
+### The Prefill→Decode Problem
+
+In a normal vLLM setup:
+```
+Request → [Prefill + Decode happen on same GPU]
+```
+
+In a disaggregated setup:
+```
+Request → [Prefill on GPU-1] → [KV cache → Mooncake] → [Decode on GPU-2]
+```
+
+The second setup is more efficient because:
+- Prefill is memory-bandwidth limited (benefit from fast GPUs)
+- Decode is compute limited (can use cheaper GPUs)
+- You can scale them independently
+
+### HAMI on Lambda
+
+When you need to expand decode size (more tokens being generated), HAMI handles resizing the decode pod's memory.
+
+**Configuration:** Memory utilization thresholds are hardcoded in the Lambda setup scripts (we'll build a dashboard for this later!).
+
+**In code:** 
+- `setup/lambda_k3s_hami.sh` - HAMI deployment configuration
+- `k8s-config/hami/` - Kubernetes configs for disaggregation
+
+---
+
+## Act 13: Mooncake - The KV Store
+
+Mooncake is your **distributed KV cache manager.** It answers one question:
+
+> "Where are these KV tokens, and can I read them?"
+
+### What Mooncake Tracks
+
+- Which GPU has which KV tokens cached
+- Can we reuse tokens from a previous request?
+- When we need to move KV tokens between GPUs, how fast can we do it?
+- When memory is full, what should we evict?
+
+### Mooncake in Your Cluster
+
+The router talks to Mooncake constantly:
+- "Does GPU-2 already have tokens from request X?"
+- If yes → reuse and save compute
+- If no → start fresh (but maybe transfer KV from GPU-1)
+
+**In code:** 
+- `router/mooncake.py` - KV store logic
+- Listens on a gRPC port (defined in `.env` as `MOONCAKE_URL`)
+
+---
+
+## Act 14: The Router Ports & Protocols
+
+Your router is the orchestrator. Here's what it's doing:
+
+### Port 8000: The Main Interface
+
+```
+[Gateway] → Router (port 8000) → [Decode Pod]
+                              → [Prefill Pod]
+                              → [Overflow]
+```
+
+The router sits on port 8000 and listens for:
+- New requests from the gateway
+- Health updates from vLLM pods
+- KV cache status from Mooncake
+
+### Inside the Router
+
+The router has several sub-components:
+- **KV Bus:** Tracks and evicts KV tokens
+- **Mooncake Client:** Queries the KV store
+- **Overflow Handler:** Manages fallback requests
+- **Metrics Collector:** Sends cluster health to Prometheus
+
+**In code:** `router/router.py` - The main orchestrator.
+
+---
+
+## Act 15: KEDA - The Auto-Scaler
+
+KEDA stands for **Kubernetes Event-driven Autoscaling.** It answers: "Do I need more replicas?"
+
+### KEDA's Job
+
+KEDA watches your cluster and automatically:
+- **Scale up decode:** When decode is slow, spin up more decode pods
+- **Scale up prefill:** When prefill is slow, spin up more prefill pods
+- **Scale up models:** When vLLM pods are full, add more of them
+
+It uses metrics to decide:
+- How many active requests per pod?
+- How much KV memory is used?
+- Is latency growing?
+
+If these metrics look bad → KEDA spins up more pods. If they look good → KEDA shuts down pods.
+
+**Why KEDA?** Because you want your cluster to breathe. Heavy load → more pods. Light load → fewer pods (save money).
+
+**In code:** Look for `keda-*.yaml` files in `k8s-config/` - these define the scaling rules.
+
+---
+
+## Act 16: The Two Errors You Need to Know
+
+Requests fail for different reasons. Your overflow strategy depends on which one.
+
+### Error 429: Too Many Tokens
+
+```
+Client: "Generate 1000 tokens for me"
+Router: "I don't have the capacity! You asked too much."
+Response: 429 (Tenant Error)
+```
+
+**What it means:** The user asked for something too expensive. Not enough KV memory, too many tokens needed.
+
+**What happens:** Router might:
+- Reject the request (tell user to ask for fewer tokens)
+- Queue it (wait for capacity)
+- Send to overflow with a smaller model
+
+### Error 503: No Seats Available
+
+```
+Client: "Generate 100 tokens for me"
+Router: "I only have prefill capacity, no decode!"
+Response: 503 (Service Unavailable)
+```
+
+**What it means:** The cluster is completely full. No pods have space.
+
+**What happens:** Overflow takes over—send the request to:
+- Superlinked (vector database)
+- Or wait in a queue
+- Or tell user to retry later
+
+### The Difference
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| **429** | Request too expensive | Reduce tokens, use smaller model, or queue |
+| **503** | Cluster full | Wait, add more capacity, or use fallback |
+
+---
+
+## Act 17: Integrating with FakeWorker
+
+Remember the FakeWorker from earlier? The router and overflow work *closely* with it.
+
+When you run:
+```bash
+make fakeworker-overflow
+```
+
+You're testing overflow behavior. The FakeWorker simulates a GPU that returns 503 errors, and the overflow handler catches them.
+
+This lets you:
+- ✅ Test overflow without real GPUs
+- ✅ See how requests route under failure
+- ✅ Validate your fallback strategy
+
+**In code:** `setup/overflow_smoke.py` - Tests the overflow integration.
+
+---
+
 ## Putting It All Together: The Full Flow
 
 ```

@@ -33,7 +33,22 @@ cd /Users/nakulmanchanda/dev/class-code/class9
 make ssh
 ```
 
-Then on Lambda (you should see `ubuntu@....:~/class9$`):
+Once connected, **first time only** - set up your environment:
+
+```bash
+# One-time setup: configure ~/.bashrc for convenience
+bash setup/setup_bashrc.sh
+
+# Apply changes to current session
+source ~/.bashrc
+```
+
+This will:
+- Auto-cd to ~/class9 on future logins
+- Auto-activate Python venv on future logins
+- Add helpful aliases (class9-status, class9-logs, class9-pods)
+
+Then run the cluster setup:
 
 ```bash
 # Step 12: Install k3s, Keda, and dependencies
