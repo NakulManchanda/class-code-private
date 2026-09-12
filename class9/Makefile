@@ -8,6 +8,7 @@ export PYTHONPATH := $(CURDIR)
         logs clean superlinked-usage superlinked-keys
 
 help:
+	@echo "Capacity experiments: make test-429, test-503, test-saturation, test-overflow (see make capacity-help)"
 	@echo "Class 9: Gateway + Router + vLLM Cluster"
 	@echo ""
 	@echo "═══════════════════════════════════════════════════════════════════"
@@ -36,7 +37,7 @@ help:
 	@echo "  make port-forward       Step 16:   Start SSH tunnels (KEEP RUNNING)"
 	@echo "  make app                Step 20:   Run app.py interactive REPL"
 	@echo "  make test-traffic-5     Step 21:   Send 5 concurrent requests"
-	@echo "  make test-traffic-10    Step 21:   Send 10 concurrent requests (overflow)"
+	@echo "  make test-traffic-10    Step 21:   Send 10 concurrent worker requests"
 	@echo "  make test-traffic-fast  Step 21:   Send 3 fast requests (15 tokens)"
 	@echo ""
 	@echo "═══════════════════════════════════════════════════════════════════"
@@ -145,7 +146,7 @@ test-traffic-5:
 	fi
 
 test-traffic-10:
-	@echo "Sending 10 concurrent test requests (should trigger overflow)..."
+	@echo "Sending 10 concurrent worker requests..."
 	@if [ -f .env ]; then \
 		set -a && . .env && set +a && TEST_NUM_REQUESTS=10 $(PYTHON) tests/test_traffic.py; \
 	else \
@@ -195,3 +196,23 @@ clean:
 	@echo "✓ Cleaned"
 
 .DEFAULT_GOAL := help
+
+# Capacity experiments: local router -> forwarded Lambda workers.
+LAB_REQUESTS ?= 128
+LAB_CONCURRENCY ?= 32
+LAB_TOKENS ?= 1024
+LAB_TIMEOUT ?= 120
+LAB_OVERFLOW_LIMIT ?= 3
+.PHONY: test-429 test-503 test-saturation test-overflow capacity-help
+
+test-429:
+	$(PYTHON) -m scripts.capacity_lab 429
+
+test-503:
+	$(PYTHON) -m scripts.capacity_lab 503
+
+test-saturation test-overflow:
+	$(PYTHON) -m scripts.capacity_lab $(if $(filter test-overflow,$@),overflow,saturation) --requests $(LAB_REQUESTS) --concurrency $(LAB_CONCURRENCY) --tokens $(LAB_TOKENS) --timeout $(LAB_TIMEOUT) --overflow-limit $(LAB_OVERFLOW_LIMIT)
+
+capacity-help:
+	@cat scripts/CAPACITY_TESTING.md
