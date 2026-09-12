@@ -15,6 +15,10 @@ class5/.env
 class5/.env.local
 class7/.env
 class7/.env.local
+class9/.env
+class9/.env.local
+class9/.venv/
+class9/traces/requests.jsonl
 class5/class5_with_outputs.pdf
 class5/class5_with_outputs.html
 class5/.venv/
@@ -35,4 +39,6 @@ class2/models/*.gguf
 class2/.venv/
 __pycache__/
 *.pyc
+.pytest_cache/
+.mypy_cache/
 .DS_Store
