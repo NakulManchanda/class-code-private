@@ -19,6 +19,10 @@ class9/.env
 class9/.env.local
 class9/.venv/
 class9/traces/requests.jsonl
+class9b/.env
+class9b/.env.local
+class9b/.venv/
+class9b/traces/requests.jsonl
 class5/class5_with_outputs.pdf
 class5/class5_with_outputs.html
 class5/.venv/
