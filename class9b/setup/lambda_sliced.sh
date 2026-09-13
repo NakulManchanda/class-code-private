@@ -56,14 +56,14 @@ serve() {
 
 serve text "$PREFILL_PORT" "$UTIL_PREFILL" "$TEXT_MODEL"
 wait_http "http://127.0.0.1:${PREFILL_PORT}/v1/models"
-serve vision "$DECODE_PORT" "$UTIL_DECODE" "$VISION_MODEL"
+serve decode "$DECODE_PORT" "$UTIL_DECODE" "$TEXT_MODEL"
 wait_http "http://127.0.0.1:${DECODE_PORT}/v1/models"
 wait_http "http://127.0.0.1:${MOONCAKE_PORT}/health" || true
 
 echo
 echo "PREFILL_URLS=http://127.0.0.1:${PREFILL_PORT}   # text ${TEXT_MODEL}"
-echo "DECODE_URLS=http://127.0.0.1:${DECODE_PORT}    # vision ${VISION_MODEL}"
-echo "LAB_SPLIT=capability"
+echo "DECODE_URLS=http://127.0.0.1:${DECODE_PORT}    # text ${TEXT_MODEL} (KV hops!)"
+echo "LAB_SPLIT=phase"
 echo "LAB_TOPOLOGY=disaggregated"
 echo "MOONCAKE_URL=http://127.0.0.1:${MOONCAKE_PORT}"
 echo "nvidia-smi should show two vLLM processes on one GPU."
