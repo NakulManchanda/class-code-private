@@ -7,6 +7,7 @@ export PYTHONPATH := $(CURDIR)
         observe grafana-open grafana-password \
         locust-install locust-run locust-open \
         crew-flood dashboards-list \
+        download-metrics \
         test test-all clean
 
 help:
@@ -95,6 +96,11 @@ help:
 	@echo "                          Run all rejection tests"
 	@echo "  make test-rejections-help"
 	@echo "                          Detailed rejection testing guide"
+	@echo ""
+	@echo "SHUTDOWN & ARCHIVE"
+	@echo "═══════════════════════════════════════════════════════════════════"
+	@echo "  make download-metrics   Download all metrics before Lambda shutdown"
+	@echo "                          Saves: REPL metrics, board, latency profiles"
 	@echo ""
 	@echo "  make clean              Remove .venv and __pycache__"
 	@echo ""
@@ -413,6 +419,16 @@ test-rejections-help:
 	@echo "Customize with env vars:"
 	@echo "  NUM_REQUESTS=10 CONCURRENCY=5 make test-rejection-gateway-concurrency"
 	@echo ""
+
+# ═══════════════════════════════════════════════════════════════════════════
+# SHUTDOWN & ARCHIVE
+# ═══════════════════════════════════════════════════════════════════════════
+
+download-metrics:
+	@echo "Downloading all metrics and data before Lambda shutdown..."
+	@bash download_metrics_local.sh
+	@echo ""
+	@echo "Results saved. Ready to shutdown Lambda!"
 
 clean:
 	@echo "Cleaning up..."
