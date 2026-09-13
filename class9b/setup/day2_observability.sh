@@ -60,5 +60,11 @@ echo "Grafana NodePort + admin password:"
 kubectl -n monitoring get svc grafana
 kubectl -n monitoring get secret grafana -o jsonpath='{.data.admin-password}' | base64 -d
 echo
+echo "⚠️  IMPORTANT: In a NEW Lambda terminal, run this to port-forward Grafana:"
+echo "  kubectl -n monitoring port-forward svc/grafana 31495:80"
+echo
+echo "Then on Mac, open: http://127.0.0.1:31495"
+echo "Login: admin / <password above>"
+echo
 echo "Prometheus: kubectl -n monitoring port-forward svc/prometheus-server 9090:80"
 echo "Do not reimplement epp.py. Point the scraper at this build."
