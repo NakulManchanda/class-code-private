@@ -4,10 +4,49 @@ Spin up a Lambda instance and add it to your `.env` file.
 
 Lambda's cloud firewall only allows SSH. Leave the Step 2 SSH session open — it tunnels the lab ports. On the Mac, open only `127.0.0.1` URLs, never the public Lambda IP.
 
-- Open WebUI — http://127.0.0.1:30030 — after Step 4. No login.
-- orch-serve — http://127.0.0.1:8080 — gateway. Locust `--host` and the REPL use this.
-- Grafana — http://127.0.0.1:31495 — after Step 20. User `admin`. Password from Step 21.
-- Locust UI — http://127.0.0.1:8089 — after Step 24. Locust's own UI, not the gateway.
+---
+
+## 🎯 How It All Works
+
+```
+END USER
+  ↓
+Open WebUI (browser chat interface)  http://127.0.0.1:30030
+  ↓
+🟡 GATEWAY (admission control)       http://127.0.0.1:8080/v1
+  Decides: admit or reject this request?
+  ↓
+🟡 ROUTER (placement decisions)
+  Decides: which pod processes this?
+  ↓
+🟢 MOONCAKE (KV cache transfers)
+  Stores and transfers cached KV between pods
+  ↓
+🔵 HAMi (GPU slicing)
+  Allocates GPU resources to pods
+  ↓
+🟣 KEDA (auto-scaling)
+  Adds/removes pods based on load
+  ↓
+vLLM PODS (inference engines)
+  text-0 (prefill + decode): Qwen2.5-3B-Instruct
+  vision-0 (prefill + decode): Qwen2.5-VL-3B
+  ↓
+Response back to Open WebUI
+  ↓
+User sees answer in chat ✨
+```
+
+**All five planes working invisibly!** The system automatically handles admission, routing, KV cache hopping, GPU allocation, and scaling — while you just chat.
+
+---
+
+## 🌐 Access Points
+
+- **Open WebUI** — http://127.0.0.1:30030 — User-facing chat interface (after Step 4)
+- **orch-serve** — http://127.0.0.1:8080 — Gateway API (Locust `--host` and REPL use this)
+- **Grafana** — http://127.0.0.1:31495 — Real-time observability dashboards (after Step 20)
+- **Locust UI** — http://127.0.0.1:8089 — Load testing control panel (after Step 24)
 
 ---
 
