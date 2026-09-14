@@ -42,6 +42,12 @@ def main(argv: list[str] | None = None) -> None:
     apply_args(_parse(argv))
     from gateway.internal.app import create_app
 
+    print(
+        f"gateway  replicas={cfg.REPLICA_URLS}  "
+        f"limiter={cfg.LIMITER_RPS}rps/burst={cfg.LIMITER_BURST}  "
+        f"admission={cfg.ADMISSION_ENABLED}  queue={cfg.QUEUE_ENABLED}  "
+        f"prefix_routing={cfg.USE_PREFIX_ROUTING}"
+    )
     uvicorn.run(create_app(), host=cfg.HOST, port=cfg.PORT, log_level="info")
 
 

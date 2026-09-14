@@ -27,27 +27,33 @@ if ! command -v vllm >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "starting two replicas of $MODEL  (max-num-seqs=8, gpu-memory-utilization=0.35)"
+echo "starting two replicas of $MODEL  (max-num-seqs=8, gpu-memory-utilization=0.1)"
 
 vllm serve "$MODEL" --port 8001 \
-  --gpu-memory-utilization 0.35 \
+  --gpu-memory-utilization 0.1 \
   --max-num-seqs 8 \
-  --max-model-len 16384 \
+  --max-model-len 4096 \
   --scheduling-policy priority \
-  --served-model-name lab &
+  --served-model-name lab --uvicorn-log-level warning 2>&1 | tee /tmp/vllm-8001.log &
 PID1=$!
+echo "$PID1" > /tmp/llm-gateway-lab-8001.pid
+
+echo "waiting for :8001 before starting :8002..."
+for i in $(seq 1 90); do
+  curl -sf http://127.0.0.1:8001/v1/models >/dev/null 2>&1 && break
+  sleep 2
+done
 
 vllm serve "$MODEL" --port 8002 \
-  --gpu-memory-utilization 0.35 \
+  --gpu-memory-utilization 0.1 \
   --max-num-seqs 8 \
-  --max-model-len 16384 \
+  --max-model-len 4096 \
   --scheduling-policy priority \
-  --served-model-name lab &
+  --served-model-name lab 2>&1 | tee /tmp/vllm-8002.log &
 PID2=$!
-
-echo "$PID1" > /tmp/llm-gateway-lab-8001.pid
 echo "$PID2" > /tmp/llm-gateway-lab-8002.pid
-echo "pids $PID1 $PID2  — waiting for /v1/models (model download can take several minutes)"
+
+echo "pids $PID1 $PID2  — waiting for both replicas"
 
 ok=0
 for i in $(seq 1 180); do
