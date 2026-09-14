@@ -4,7 +4,7 @@
 set -euo pipefail
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-DOWNLOAD_DIR="./results_${TIMESTAMP}"
+DOWNLOAD_DIR="./results/metrics_${TIMESTAMP}"
 
 echo "📊 Downloading metrics via SSH tunnel..."
 mkdir -p "$DOWNLOAD_DIR"

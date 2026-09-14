@@ -4,7 +4,7 @@
 set -euo pipefail
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-DOWNLOAD_DIR="./results_${TIMESTAMP}"
+DOWNLOAD_DIR="./results/metrics_${TIMESTAMP}"
 LAMBDA_HOST="193.122.152.87"
 LAMBDA_USER="ubuntu"
 
