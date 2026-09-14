@@ -1,0 +1,10 @@
+Step 12: Starting REPL...
+stage        count      sum_s     avg_ms
+---------- ------- ---------- ----------
+gateway          0      0.000        0.0
+pick             0      0.000        0.0
+local            0      0.000        0.0
+overflow         0      0.000        0.0
+e2e              0      0.000        0.0
+
+requests=0 completed=0 picks=0 sticky=0 overflow=0
