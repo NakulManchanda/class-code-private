@@ -83,7 +83,6 @@ def test_hop_then_evict_records_transfer() -> None:
     assert "evict" in evict.lower()
     assert METRICS.kv_evict_total >= 1
 
-
 def test_metrics_command_dumps_prometheus_text() -> None:
     lab = Lab()
     _join(lab, "send text")
@@ -94,7 +93,6 @@ def test_metrics_command_dumps_prometheus_text() -> None:
     profile = _join(lab, "profile")
     assert "gateway" in profile and "pick" in profile
     assert "requests=" in profile
-
 
 def test_lab_source_stays_on_the_laptop() -> None:
     src = (ROOT / "gateway" / "repl.py").read_text()

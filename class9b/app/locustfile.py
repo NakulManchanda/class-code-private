@@ -18,7 +18,6 @@ TINY_PNG = (
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
 )
 
-
 class ChatUser(HttpUser):
     wait_time = between(0.4, 1.2)
     host = os.environ.get("LOCUST_HOST", "http://127.0.0.1:8080")

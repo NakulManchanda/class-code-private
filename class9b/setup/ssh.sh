@@ -7,7 +7,6 @@ if [[ -f "$ROOT/.env" ]]; then
   source "$ROOT/.env"
   set +a
 fi
-# Lambda's cloud firewall only allows SSH. Lab HTTP goes through these forwards.
 exec ssh -i "$LAMBDA_SSH_KEY" \
   -o StrictHostKeyChecking=accept-new \
   -o ExitOnForwardFailure=no \

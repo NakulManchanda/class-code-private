@@ -305,3 +305,7 @@ Same SSH terminal as Step 31.
 ```
 curl -sf http://127.0.0.1:50051/metrics
 ```
+
+### Step 33
+
+Terminate your Lambda instance hahaha!!!

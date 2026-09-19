@@ -1,5 +1,3 @@
-"""Crew-style flood. POSTs model=text to orch-serve. Gateway binds the pod."""
-
 from __future__ import annotations
 
 import argparse
@@ -15,10 +13,8 @@ ROLES = (
     ("planner", "One sentence: when should KEDA add a decode replica?"),
 )
 
-
 def _base() -> str:
     return (os.environ.get("ORCH_URL") or "http://127.0.0.1:8080/v1").rstrip("/")
-
 
 def _chat_once(role: str, prompt: str) -> str:
     payload = {
@@ -42,7 +38,6 @@ def _chat_once(role: str, prompt: str) -> str:
     msg = first.get("message") if isinstance(first.get("message"), dict) else {}
     return str(msg.get("content") or first.get("text") or "").strip()
 
-
 def _run_threads(rounds: int, workers: int) -> list[str]:
     jobs = [ROLES[i % len(ROLES)] for i in range(rounds)]
     texts: list[str] = []
@@ -51,7 +46,6 @@ def _run_threads(rounds: int, workers: int) -> list[str]:
         for fut in as_completed(futs):
             texts.append(fut.result())
     return texts
-
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Crew-style flood for class9b dashboards")
@@ -64,7 +58,6 @@ def main(argv: list[str] | None = None) -> int:
         if line:
             print(f"  TEXT {line[:160]}")
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

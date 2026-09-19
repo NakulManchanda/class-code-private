@@ -1,4 +1,6 @@
-# Class 7 — CrewAI → limiter → gateway → two vLLM replicas
+# Class 7 — CrewAI → limiter → gateway (gateway+queue+routing) → two vLLM replicas
+
+Homework (laptop, fake GPU): [hw/README.md](hw/README.md). `admit.py` / `sched.py` / `router.py` / `serve.py`. Do not mix it with `gateway/`.
 
 One GPU on Lambda. `--max-num-seqs 8` is the point — do not raise it.
 

@@ -8,7 +8,6 @@ from observability.dashboards import DASHBOARDS, METRIC_NAMES, write_dashboards
 ROOT = Path(__file__).resolve().parents[1]
 DEST = ROOT / "k8s-config" / "observability" / "dashboards"
 
-
 def test_dashboards_cover_each_layer() -> None:
     assert set(DASHBOARDS) == {
         "overview",

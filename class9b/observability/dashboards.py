@@ -112,13 +112,11 @@ METRIC_NAMES = {
     ),
 }
 
-
 def _target(expr: str, legend: str = "", ref: str = "A") -> dict:
     target: dict = {"datasource": PROM, "expr": expr, "refId": ref}
     if legend:
         target["legendFormat"] = legend
     return target
-
 
 def _panel(
     pid: int,
@@ -160,7 +158,6 @@ def _panel(
         }
     return panel
 
-
 def _dash(uid: str, title: str, panels: list[dict], tags: list[str]) -> dict:
     return {
         "uid": uid,
@@ -181,7 +178,6 @@ def _dash(uid: str, title: str, panels: list[dict], tags: list[str]) -> dict:
         "panels": panels,
         "style": "dark",
     }
-
 
 def overview() -> dict:
     return _dash(
@@ -210,7 +206,6 @@ def overview() -> dict:
         ],
         ["class9b", "metrics.py", "overview"],
     )
-
 
 def gateway() -> dict:
     return _dash(
@@ -244,7 +239,6 @@ def gateway() -> dict:
         ],
         ["class9b", "gateway"],
     )
-
 
 def router() -> dict:
     return _dash(
@@ -283,7 +277,6 @@ def router() -> dict:
         ["class9b", "router"],
     )
 
-
 def replicas() -> dict:
     lab = 'deployment=~"vllm-.*|orch-serve|mooncake-store"'
     pod = 'pod=~"vllm-.*|orch-serve.*|mooncake-store.*"'
@@ -305,7 +298,6 @@ def replicas() -> dict:
         ],
         ["class9b", "replicas", "pods"],
     )
-
 
 def vllm() -> dict:
     return _dash(
@@ -351,7 +343,6 @@ def vllm() -> dict:
         ["class9b", "vllm"],
     )
 
-
 def keda() -> dict:
     vllm = 'deployment=~"vllm-prefill|vllm-decode"'
     return _dash(
@@ -367,7 +358,6 @@ def keda() -> dict:
         ],
         ["class9b", "keda"],
     )
-
 
 def hami() -> dict:
     return _dash(
@@ -392,7 +382,6 @@ def hami() -> dict:
         ["class9b", "hami"],
     )
 
-
 def mooncake() -> dict:
     return _dash(
         "class9b-mooncake",
@@ -407,7 +396,6 @@ def mooncake() -> dict:
         ],
         ["class9b", "mooncake"],
     )
-
 
 def cluster() -> dict:
     pod = 'pod=~"vllm-.*|orch-serve.*|mooncake-store.*|open-webui.*"'
@@ -447,7 +435,6 @@ def cluster() -> dict:
         ],
         ["class9b", "cluster", "dcgm"],
     )
-
 
 def errors() -> dict:
     return _dash(
@@ -527,7 +514,6 @@ def errors() -> dict:
         ["class9b", "errors", "admission"],
     )
 
-
 DASHBOARDS = {
     "overview": overview,
     "gateway": gateway,
@@ -541,7 +527,6 @@ DASHBOARDS = {
     "errors": errors,
 }
 
-
 def write_dashboards(dest: Path) -> list[Path]:
     dest.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
@@ -550,7 +535,6 @@ def write_dashboards(dest: Path) -> list[Path]:
         path.write_text(json.dumps(builder(), indent=2) + "\n")
         written.append(path)
     return written
-
 
 if __name__ == "__main__":
     root = Path(__file__).resolve().parents[1]
